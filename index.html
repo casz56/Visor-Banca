@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visor Banca (Live Server)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<!--
+  IMPORTANTE (LOGO):
+  ✅ El archivo real que subiste se llama:  Logo_Infihuila.png
+  ✅ Debe estar en la MISMA carpeta del index.html
+  ✅ Por eso usamos:  ./Logo_Infihuila.png
+-->
+
+<body class="bg-slate-50 text-slate-900">
+  <header class="sticky top-0 z-40 bg-slate-900 text-white border-b border-teal-500/30">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col lg:flex-row items-center justify-between gap-4">
+
+      <!-- IZQUIERDA: LOGO + TITULOS -->
+      <div class="flex items-center gap-4">
+        <!-- ✅ LOGO INFIHUILA (arriba izquierda) -->
+        <div class="flex items-center justify-center bg-white rounded-2xl shadow-lg border border-slate-200 p-2">
+          <img
+            src="./Logo_Infihuila.png"
+            alt="INFIHUILA"
+            class="h-12 w-auto object-contain"
+            onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';"
+          />
+          <!-- Fallback si no encuentra la imagen -->
+          <div id="logoFallback" style="display:none" class="h-12 px-3 items-center justify-center">
+            <span class="text-xs font-black text-slate-700">INFIHUILA</span>
+          </div>
+        </div>
+
+        <div>
+          <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">Visor Institucional</h1>
+          <p class="text-teal-300 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">INFIHUILA</p>
+        </div>
+      </div>
+
+      <!-- DERECHA: CONTROLES -->
+      <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
+        <div class="relative">
+          <button id="btnBanks" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all border bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700">
+            Instituciones (<span id="banksCount">0</span>)
+            <svg class="w-4 h-4 opacity-80" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <div id="banksMenu" class="hidden absolute top-full right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+              <span class="text-[10px] font-black uppercase tracking-widest text-teal-300">Seleccionar Bancos</span>
+              <button id="btnToggleAll" class="text-[9px] font-bold text-slate-400 hover:text-white uppercase underline">Todos</button>
+            </div>
+            <div id="banksList" class="max-h-72 overflow-y-auto p-2 grid gap-1"></div>
+          </div>
+        </div>
+
+        <button id="btnExcel" class="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95">
+          Descargar CSV
+        </button>
+
+        <button id="btnReset" class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+          Restablecer
+        </button>
+
+        <div class="relative min-w-[200px]">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-teal-300 text-xs">📍</span>
+          <select id="selMunicipio" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer text-white"></select>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">▾</span>
+        </div>
+
+        <div class="relative min-w-[220px]">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔎</span>
+          <input id="txtSearch" type="text" placeholder="Buscar entidad..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="p-8 rounded-[2.5rem] border shadow-sm bg-indigo-50 border-indigo-100">
+        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Colocación Total</p>
+        <p id="statTotalCol" class="text-3xl font-black text-slate-800 tracking-tighter">$0 M</p>
+      </div>
+      <div class="p-8 rounded-[2.5rem] border shadow-sm bg-teal-50 border-teal-100">
+        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Participación INFIHUILA</p>
+        <p id="statInfi" class="text-3xl font-black text-slate-800 tracking-tighter">$0 M</p>
+      </div>
+      <div class="p-8 rounded-[2.5rem] border shadow-sm bg-amber-50 border-amber-100">
+        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Captación Total</p>
+        <p id="statCap" class="text-3xl font-black text-slate-800 tracking-tighter">$0 M</p>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Comparativo del Mercado</h2>
+        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest mb-4">Instituciones seleccionadas</p>
+        <canvas id="pieChart" height="320"></canvas>
+      </div>
+
+      <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Volumen Financiero</h2>
+        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest mb-4">Comparativa crédito</p>
+        <canvas id="barChart" height="320"></canvas>
+      </div>
+
+      <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+        <h2 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Ranking Captación</h2>
+        <p id="rankSubtitle" class="text-slate-400 text-[9px] font-bold uppercase tracking-widest mb-4">Top municipios</p>
+        <canvas id="rankChart" height="320"></canvas>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+      <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/30">
+        <div>
+          <h2 class="text-xl font-black text-slate-800">Matriz Financiera</h2>
+          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Información tabulada por institución</p>
+        </div>
+        <div class="px-4 py-2 bg-teal-50 text-teal-700 rounded-xl text-xs font-black uppercase tracking-widest border border-teal-100">
+          <span id="resultsCount">0</span> Resultados
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left min-w-[1200px]">
+          <thead id="tblHead"></thead>
+          <tbody id="tblBody" class="divide-y divide-slate-50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="text-center text-xs text-slate-400 py-6">
+      © 2025 INFIHUILA - Instituto de Financiamiento, Promoción y Desarrollo del Huila
+
+Documento controlado. Cualquier impresión es copia no controlada.
+    </footer>
+  </main>
+
+<script>
+const INITIAL_DATA = [
+  { municipio: "ACEVEDO", nit: "813002497:5", entidad: "E.S.E. Hospital San Francisco Javier", colocacion: 0, captacion: 0, agrario: 800, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "ACEVEDO", nit: "891180069:1", entidad: "Alcaldía de Acevedo", colocacion: 0, captacion: 0, agrario: 0, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "AGRADO", nit: "891180139:9", entidad: "Alcaldía El Agrado", colocacion: 1658, captacion: 0, agrario: 0, bogota: 0, davivienda: 450, bancolombia: 1862, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "AIPE", nit: "891180070:1", entidad: "Alcaldía de Aipe", colocacion: 0, captacion: 0, agrario: 0, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "CAMPOALEGRE", nit: "891180009:1", entidad: "Alcaldía de Campoalegre", colocacion: 3226, captacion: 161, agrario: 0, bogota: 0, davivienda: 450, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "GARZON", nit: "891180018:0", entidad: "Alcaldía de Garzón", colocacion: 16196, captacion: 121, agrario: 515, bogota: 0, davivienda: 0, bancolombia: 652, occidente: 0, popular: 0, bbva: 0, findeter: 16000 },
+  { municipio: "NEIVA", nit: "800103913:4", entidad: "Departamento del Huila", colocacion: 2910, captacion: 0, agrario: 1542, bogota: 17552, davivienda: 3730, bancolombia: 0, occidente: 30763, popular: 16388, bbva: 0, findeter: 24209 },
+  { municipio: "NEIVA", nit: "891180009:1", entidad: "Alcaldía de Neiva", colocacion: 8860, captacion: 5000, agrario: 0, bogota: 1098, davivienda: 57637, bancolombia: 0, occidente: 0, popular: 29625, bbva: 0, findeter: 0 },
+  { municipio: "NEIVA", nit: "800103913:5", entidad: "Terminal de Transportes de Neiva", colocacion: 375, captacion: 1475, agrario: 0, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "PITALITO", nit: "891180021:5", entidad: "Alcaldía de Pitalito", colocacion: 229, captacion: 2500, agrario: 5025, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "TELLO", nit: "891180127:0", entidad: "Alcaldía de Tello", colocacion: 1731, captacion: 0, agrario: 3158, bogota: 0, davivienda: 0, bancolombia: 1500, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "TARQUI", nit: "891180211:1", entidad: "Alcaldía de Tarqui", colocacion: 167, captacion: 0, agrario: 0, bogota: 0, davivienda: 2720, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "SUAZA", nit: "891180119:0", entidad: "Alcaldía de Suaza", colocacion: 1688, captacion: 0, agrario: 0, bogota: 463, davivienda: 0, bancolombia: 385, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+  { municipio: "YAGUARA", nit: "900250077:3", entidad: "Empresas Públicas de Yaguará", colocacion: 2300, captacion: 500, agrario: 0, bogota: 0, davivienda: 0, bancolombia: 0, occidente: 0, popular: 0, bbva: 0, findeter: 0 },
+];
+
+const BANKS = [
+  { id: 'colocacion', label: 'INFIHUILA', color: '#0d9488' },
+  { id: 'agrario', label: 'Bco Agrario', color: '#16a34a' },
+  { id: 'bogota', label: 'Bco Bogotá', color: '#ca8a04' },
+  { id: 'davivienda', label: 'Davivienda', color: '#dc2626' },
+  { id: 'bancolombia', label: 'Bancolombia', color: '#2563eb' },
+  { id: 'occidente', label: 'Bco Occidente', color: '#4f46e5' },
+  { id: 'popular', label: 'Bco Popular', color: '#9333ea' },
+  { id: 'bbva', label: 'BBVA', color: '#0284c7' },
+  { id: 'findeter', label: 'Findeter', color: '#be185d' }
+];
+
+let selectedBanks = new Set(BANKS.map(b => b.id));
+let selectedMunicipio = "Todos";
+let filterText = "";
+
+const $ = (id) => document.getElementById(id);
+
+function uniq(arr){ return [...new Set(arr)]; }
+function fmt(n){ return Number(n||0).toLocaleString('es-CO'); }
+
+function buildMunicipios(){
+  const sel = $("selMunicipio");
+  const munis = ["Todos", ...uniq(INITIAL_DATA.map(d=>d.municipio)).sort()];
+  sel.innerHTML = munis.map(m => `<option value="${m}">${m === "Todos" ? "Todo el Departamento" : m}</option>`).join("");
+  sel.value = selectedMunicipio;
+}
+
+function buildBanksMenu(){
+  $("banksCount").textContent = selectedBanks.size;
+  const wrap = $("banksList");
+  wrap.innerHTML = BANKS.map(b => {
+    const checked = selectedBanks.has(b.id);
+    return `
+      <button type="button" data-id="${b.id}" class="bank-item flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-left group w-full">
+        <span class="inline-flex items-center justify-center w-4 h-4 border border-slate-600 rounded ${checked ? "bg-teal-500 border-teal-500" : ""}"></span>
+        <span class="text-xs font-medium ${checked ? "text-white" : "text-slate-400"}">${b.label}</span>
+        <span class="ml-auto w-2 h-2 rounded-full" style="background:${b.color}"></span>
+      </button>`;
+  }).join("");
+
+  wrap.querySelectorAll(".bank-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-id");
+      if(selectedBanks.has(id)) selectedBanks.delete(id); else selectedBanks.add(id);
+      buildBanksMenu();
+      renderAll();
+    });
+  });
+}
+
+function getFiltered(){
+  return INITIAL_DATA.filter(item => {
+    const matchSearch = (item.entidad || "").toLowerCase().includes(filterText) || (item.municipio||"").toLowerCase().includes(filterText);
+    const matchMunicipio = (selectedMunicipio === "Todos") || item.municipio === selectedMunicipio;
+    return matchSearch && matchMunicipio;
+  });
+}
+
+function computeBankTotals(filtered){
+  const out = [];
+  BANKS.forEach(b => {
+    if(!selectedBanks.has(b.id)) return;
+    const sum = filtered.reduce((acc, cur) => acc + (Number(cur[b.id])||0), 0);
+    if(sum > 0) out.push({ name: b.label, value: sum, color: b.color, id: b.id });
+  });
+  out.sort((a,b)=>b.value-a.value);
+  return out;
+}
+
+let pie, bar, rank;
+
+function renderCharts(filtered){
+  const totals = computeBankTotals(filtered);
+
+  const totalCol = totals.reduce((s,i)=>s+i.value,0);
+  const infi = totals.find(x=>x.id==="colocacion")?.value || 0;
+  const cap = filtered.reduce((s,i)=>s+(Number(i.captacion)||0),0);
+  $("statTotalCol").textContent = `$${fmt(totalCol)} M`;
+  $("statInfi").textContent = `$${fmt(infi)} M`;
+  $("statCap").textContent = `$${fmt(cap)} M`;
+
+  const pieCtx = $("pieChart").getContext("2d");
+  if(pie) pie.destroy();
+  pie = new Chart(pieCtx, {
+    type: "doughnut",
+    data: {
+      labels: totals.map(t=>t.name),
+      datasets: [{ data: totals.map(t=>t.value), backgroundColor: totals.map(t=>t.color) }]
+    },
+    options: { plugins: { legend: { position: "bottom" } }, cutout: "60%" }
+  });
+
+  const barCtx = $("barChart").getContext("2d");
+  if(bar) bar.destroy();
+  bar = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels: totals.map(t=>t.name),
+      datasets: [{ label: "Colocación (M)", data: totals.map(t=>t.value), backgroundColor: totals.map(t=>t.color) }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } } }
+  });
+
+  const rankData = (() => {
+    if(selectedMunicipio === "Todos"){
+      const grouped = {};
+      for(const r of filtered){
+        grouped[r.municipio] = (grouped[r.municipio]||0) + (Number(r.captacion)||0);
+      }
+      return Object.entries(grouped).map(([name,value])=>({name,value})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,10);
+    } else {
+      return filtered
+        .map(r=>({name: r.entidad.length>20 ? r.entidad.slice(0,20)+"…" : r.entidad, value: Number(r.captacion)||0}))
+        .filter(x=>x.value>0).sort((a,b)=>b.value-a.value).slice(0,10);
+    }
+  })();
+
+  $("rankSubtitle").textContent = (selectedMunicipio==="Todos") ? "Top municipios (Activos)" : "Top entidades local";
+
+  const rankCtx = $("rankChart").getContext("2d");
+  if(rank) rank.destroy();
+  rank = new Chart(rankCtx, {
+    type: "bar",
+    data: { labels: rankData.map(x=>x.name), datasets: [{ label: "Captación (M)", data: rankData.map(x=>x.value) }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } } }
+  });
+}
+
+function renderTable(filtered){
+  $("resultsCount").textContent = filtered.length;
+
+  const headCols = [];
+  headCols.push(`<th class="px-6 py-5 sticky left-0 bg-slate-50 z-10">Entidad / Municipio</th>`);
+  if(selectedBanks.has("colocacion")){
+    headCols.push(`<th class="px-6 py-5 text-center bg-teal-50 text-teal-700 font-black">INFI COLOCACIÓN</th>`);
+    headCols.push(`<th class="px-6 py-5 text-center bg-teal-50 text-teal-700 font-black">INFI CAPTACIÓN</th>`);
+  }
+  for(const b of BANKS.slice(1)){
+    if(selectedBanks.has(b.id)){
+      headCols.push(`<th class="px-4 py-5 text-center uppercase text-[9px] tracking-widest text-slate-500">${b.label}</th>`);
+    }
+  }
+  $("tblHead").innerHTML = `<tr class="bg-slate-50 border-b border-slate-100 text-[9px] uppercase font-bold tracking-widest">${headCols.join("")}</tr>`;
+
+  const rows = filtered.map(item => {
+    const cells = [];
+    cells.push(`
+      <td class="px-6 py-5 sticky left-0 bg-white group-hover:bg-slate-50 z-10">
+        <div class="text-[11px] font-black text-slate-800 uppercase tracking-tighter truncate max-w-[280px]">${item.entidad}</div>
+        <div class="text-[10px] font-bold text-teal-600 uppercase">${item.municipio}</div>
+        <div class="text-[9px] text-slate-400 font-mono">NIT: ${item.nit}</div>
+      </td>`);
+
+    if(selectedBanks.has("colocacion")){
+      cells.push(`<td class="px-6 py-5 text-center text-xs font-black bg-teal-50/10 text-teal-700">${(item.colocacion>0)?`$${fmt(item.colocacion)}`:"-"}</td>`);
+      cells.push(`<td class="px-6 py-5 text-center text-xs font-black bg-teal-50/10 text-amber-600">${(item.captacion>0)?`$${fmt(item.captacion)}`:"-"}</td>`);
+    }
+
+    for(const b of BANKS.slice(1)){
+      if(!selectedBanks.has(b.id)) continue;
+      const v = Number(item[b.id])||0;
+      cells.push(`<td class="px-4 py-5 text-center"><span class="text-[11px] font-bold ${v>0?"":"text-slate-300"}" style="${v>0?`color:${b.color}`:""}">${v>0?`$${fmt(v)}`:"-"}</span></td>`);
+    }
+
+    return `<tr class="group hover:bg-slate-50 transition-all">${cells.join("")}</tr>`;
+  });
+  $("tblBody").innerHTML = rows.join("");
+}
+
+function renderAll(){
+  const filtered = getFiltered();
+  renderCharts(filtered);
+  renderTable(filtered);
+}
+
+function downloadCSV(){
+  const filtered = getFiltered();
+  const headers = ["Municipio","NIT","Entidad","INFIHUILA Colocación","INFIHUILA Captación","Banco Agrario","Banco de Bogotá","Davivienda","Bancolombia","Banco de Occidente","Banco Popular","BBVA","Findeter"];
+  const rows = filtered.map(i => [
+    i.municipio, i.nit, String(i.entidad).replace(/;/g, ","),
+    i.colocacion, i.captacion, i.agrario, i.bogota, i.davivienda, i.bancolombia, i.occidente, i.popular, i.bbva, i.findeter
+  ]);
+  const csv = "\uFEFF" + [headers.join(";"), ...rows.map(r=>r.join(";"))].join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Matriz_Financiera_${selectedMunicipio.replace(/\s/g,"_")}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// UI wiring
+$("btnBanks").addEventListener("click", ()=>{
+  $("banksMenu").classList.toggle("hidden");
+});
+
+document.addEventListener("click", (e)=>{
+  const menu = $("banksMenu");
+  const btn = $("btnBanks");
+  if(menu.classList.contains("hidden")) return;
+  if(menu.contains(e.target) || btn.contains(e.target)) return;
+  menu.classList.add("hidden");
+});
+
+$("btnToggleAll").addEventListener("click", ()=>{
+  if(selectedBanks.size === BANKS.length){
+    selectedBanks = new Set(); $("btnToggleAll").textContent = "Todos";
+  } else {
+    selectedBanks = new Set(BANKS.map(b=>b.id)); $("btnToggleAll").textContent = "Ninguno";
+  }
+  buildBanksMenu();
+  renderAll();
+});
+
+$("selMunicipio").addEventListener("change", (e)=>{ selectedMunicipio = e.target.value; renderAll(); });
+$("txtSearch").addEventListener("input", (e)=>{ filterText = e.target.value.trim().toLowerCase(); renderAll(); });
+
+$("btnReset").addEventListener("click", ()=>{
+  selectedBanks = new Set(BANKS.map(b=>b.id));
+  selectedMunicipio = "Todos";
+  filterText = "";
+  $("txtSearch").value = "";
+  $("selMunicipio").value = "Todos";
+  buildBanksMenu();
+  renderAll();
+});
+
+$("btnExcel").addEventListener("click", downloadCSV);
+
+// init
+buildMunicipios();
+buildBanksMenu();
+renderAll();
+</script>
+
+</body>
+</html>
