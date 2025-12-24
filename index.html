@@ -10,9 +10,8 @@
 
 <!--
   IMPORTANTE (LOGO):
-  ✅ El archivo real que subiste se llama:  Logo_Infihuila.png
+  ✅ El archivo debe llamarse EXACTAMENTE: Logo_Infihuila.png
   ✅ Debe estar en la MISMA carpeta del index.html
-  ✅ Por eso usamos:  ./Logo_Infihuila.png
 -->
 
 <body class="bg-slate-50 text-slate-900">
@@ -37,7 +36,7 @@
 
         <div>
           <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">Visor Institucional</h1>
-          <p class="text-teal-300 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">INFIHUILA</p>
+          <p class="text-teal-300 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">INFIHUILA vs Banca Comercial</p>
         </div>
       </div>
 
@@ -119,7 +118,7 @@
     <section class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
       <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/30">
         <div>
-          <h2 class="text-xl font-black text-slate-800">Matriz Financiera</h2>
+          <h2 class="text-xl font-black text-slate-800">Matriz de Acreedores</h2>
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Información tabulada por institución</p>
         </div>
         <div class="px-4 py-2 bg-teal-50 text-teal-700 rounded-xl text-xs font-black uppercase tracking-widest border border-teal-100">
@@ -136,9 +135,7 @@
     </section>
 
     <footer class="text-center text-xs text-slate-400 py-6">
-      © 2025 INFIHUILA - Instituto de Financiamiento, Promoción y Desarrollo del Huila
-
-Documento controlado. Cualquier impresión es copia no controlada.
+      © 2025 INFIHUILA - Instituto de Financiamiento, Promoción y Desarrollo del Huila Documento controlado. Cualquier impresión es copia no controlada.
     </footer>
   </main>
 
@@ -242,15 +239,34 @@ function renderCharts(filtered){
   $("statInfi").textContent = `$${fmt(infi)} M`;
   $("statCap").textContent = `$${fmt(cap)} M`;
 
+  // ✅ PIE/DOUGHNUT con % de participación en el tooltip
   const pieCtx = $("pieChart").getContext("2d");
   if(pie) pie.destroy();
   pie = new Chart(pieCtx, {
     type: "doughnut",
     data: {
-      labels: totals.map(t=>t.name),
-      datasets: [{ data: totals.map(t=>t.value), backgroundColor: totals.map(t=>t.color) }]
+      labels: totals.map(t => t.name),
+      datasets: [{
+        data: totals.map(t => t.value),
+        backgroundColor: totals.map(t => t.color)
+      }]
     },
-    options: { plugins: { legend: { position: "bottom" } }, cutout: "60%" }
+    options: {
+      cutout: "60%",
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.raw || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percent = total ? ((value / total) * 100).toFixed(2) : 0;
+              return ` ${context.label}: $${Number(value).toLocaleString('es-CO')} M (${percent}%)`;
+            }
+          }
+        }
+      }
+    }
   });
 
   const barCtx = $("barChart").getContext("2d");
